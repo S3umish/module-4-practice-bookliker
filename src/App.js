@@ -7,45 +7,152 @@ import {
   List,
   Image
 } from "semantic-ui-react";
+import BookContainer from "./container/BookContainer";
 
-function App() {
-  return (
-    <div>
-      <Menu inverted>
-        <Menu.Item header>Bookliker</Menu.Item>
-      </Menu>
-      <main>
-        <Menu vertical inverted>
-          <Menu.Item as={"a"} onClick={e => console.log("book clicked!")}>
-            Book title
-          </Menu.Item>
+const API = `http://localhost:3000/books`;
+const defaultUser = {"id":1, "username":"pouros"}
+
+
+ class App extends React.Component {
+  state = {
+    books: [],
+    selectedBook: {}
+  }
+
+  componentDidMount(){
+    fetch(API)
+    .then(res => res.json())
+    .then(books => {
+      this.setState({
+        books: books
+      })
+    })
+  }
+
+  captureBook = (bookID) => {
+    console.log(bookID)
+    this.setState({
+      selectedBook: this.state.books.find(book => book.id === bookID)
+    }) 
+  }
+
+  patchLike(book){
+
+    //.some is for looking certain value in an array
+    if(book.users.some(user => user.id === defaultUser.id)) {
+
+      console.log("like a different book")
+    } else {
+      fetch (API + `/${book.id}`,{
+        method: "PATCH",
+        headers: {
+          'Content-Type': 'Application/json',
+          'Accept': 'Application/json'
+        },
+        body: JSON.stringify({
+          users: [...book.users, defaultUser]
+        })     
+      })
+      .then(res => res.json())
+      .then(book => {
+        this.setState({
+          selectedBook: book
+        })
+      })
+    }
+  }
+
+
+  renderDefault(){
+    return(
+   <> 
+   <Header>Book title</Header>
+            <Image
+              src="https://react.semantic-ui.com/images/wireframe/image.png"
+              size="small"
+            />
+            <p>Book description</p>
+            <Button
+              color="red"
+              content="Like"
+              icon="heart"
+              label={{
+                basic: true,
+                color: "red",
+                pointing: "left",
+                content: "2,048"
+              }}
+            />
+            <Header>Liked by</Header>
+            <List>
+              <List.Item icon="user" content="User name" />
+            </List>  
+    </>
+    )
+  }
+
+
+  renderSelected(){
+    // destructuring object
+    const {title, description, img_url, users} = this.state.selectedBook
+    return(
+      <>
+      <Header>{title}</Header>
+            <Image
+              src={img_url}
+              size="small"
+            />
+            <p>{description}</p>
+            <Button
+              color="red"
+              content="Like"
+              icon="heart"
+              label={{
+                basic: true,
+                color: "red",
+                pointing: "left",
+                content: users.length
+              }}
+              onClick = {() => this.patchLike(this.state.selectedBook)}
+            />
+            <Header>Liked by</Header>
+            <List>
+              <List.Item icon="user" content="User name" />
+              {users.map(user => {
+                return (
+                  <List.Item icon="user" key={user.id} content= {user.username} />
+              )
+              })}
+            </List>
+      </>
+    )
+
+
+  }
+  
+  render(){
+    console.log(this.state.selectedBook)
+    return (
+      <div>
+        <Menu inverted>
+          <Menu.Item header>Bookliker</Menu.Item>
         </Menu>
-        <Container text>
-          <Header>Book title</Header>
-          <Image
-            src="https://react.semantic-ui.com/images/wireframe/image.png"
-            size="small"
-          />
-          <p>Book description</p>
-          <Button
-            color="red"
-            content="Like"
-            icon="heart"
-            label={{
-              basic: true,
-              color: "red",
-              pointing: "left",
-              content: "2,048"
-            }}
-          />
-          <Header>Liked by</Header>
-          <List>
-            <List.Item icon="user" content="User name" />
-          </List>
-        </Container>
-      </main>
-    </div>
-  );
+        <main>
+          <Menu vertical inverted>
+            <BookContainer 
+            books ={this.state.books} 
+            captureBook = {this.captureBook}/>
+          </Menu>
+          <Container text>
+            {this.state.selectedBook.title
+            ? this.renderSelected()
+            : this.renderDefault()}
+
+          </Container>     
+        </main>
+      </div>
+    );
+  }
 }
 
 export default App;
